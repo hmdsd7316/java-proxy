@@ -1,12 +1,13 @@
-package com.sid.OwnProxy.interfaces;
+package com.sid.proxy.interfaces;
 
-public interface Request {
-	
+public interface Response {
+
 	public String getHeader();
-	
+
 	public String getBody();
-	
+
 	public void setHeader(String header);
-	
+
 	public void setBody(String body);
+
 }

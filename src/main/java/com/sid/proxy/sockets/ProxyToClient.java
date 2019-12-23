@@ -1,4 +1,4 @@
-package com.sid.OwnProxy.socket;
+package com.sid.proxy.sockets;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -19,23 +19,23 @@ import java.util.regex.Pattern;
 
 import org.json.JSONObject;
 
-import com.sid.OwnProxy.interfaces.ProxySever;
-import com.sid.OwnProxy.interfaces.Response;
-import com.sid.OwnProxy.server.ServerResponse;
+import com.sid.proxy.interfaces.ProxySever;
+import com.sid.proxy.interfaces.Response;
+import com.sid.proxy.interfaces.ServerResponse;
 
-public class AppiumToEclipseThread implements Runnable, Closeable {
+public class ProxyToClient implements Runnable, Closeable {
 
 	InputStream appiumIn;
 	OutputStream eclipseOut;
-	ParsedRequestHeader header;
-	ProxySever proxy;
-	
+	RequestHeader header;
+	ProxySever clientCode;
 	private StringBuffer sb = new StringBuffer();
 
-	public AppiumToEclipseThread(InputStream appiumIn, OutputStream eclipseOut, ProxySever proxy) {
+	public ProxyToClient(InputStream appiumIn, OutputStream eclipseOut, RequestHeader header, ProxySever clientCode) {
 		this.appiumIn = appiumIn;
 		this.eclipseOut = eclipseOut;
-		this.proxy = proxy;
+		this.header = header;
+		this.clientCode = clientCode;
 	}
 
 	@Override
@@ -50,30 +50,26 @@ public class AppiumToEclipseThread implements Runnable, Closeable {
 
 			// Read Response Body ====================
 			baisBody = readBody(br);
-			
-			// Get Altered Response
+
 			Response response = new ServerResponse();
-			response.setBody(baisBody.toString());
 			response.setHeader(baisHeader.toString());
-			Response alterResponse = this.proxy.response(response);
-			
-			String header = alterResponse.getHeader();
-			String body = alterResponse.getBody();
+			response.setBody(baisBody.toString());
+			Response alterResponse = this.clientCode.response(response);
 			
 			// Write Headers
-			eclipseOut.write(header.getBytes(StandardCharsets.UTF_8));
+			eclipseOut.write(alterResponse.getHeader().getBytes(StandardCharsets.UTF_8));
 			eclipseOut.flush();
 
 			// Write Body
-			eclipseOut.write(body.getBytes(StandardCharsets.UTF_8));
+			eclipseOut.write(alterResponse.getBody().getBytes(StandardCharsets.UTF_8));
 			eclipseOut.flush();
 
 			System.out.println();
 			System.out.println("AppiumToEclipseThread completed.");
 
 		} catch (Exception e) {
+			e.printStackTrace();
 			returnHttpErrorResponse(e);
-			System.out.println("releasing session cause of server error.");
 		} finally {
 			try {
 				eclipseOut.flush();
@@ -95,7 +91,6 @@ public class AppiumToEclipseThread implements Runnable, Closeable {
 			byte[] lineBytes = (line).getBytes(StandardCharsets.UTF_8);
 			System.out.print("  <<  " + line);
 			header.write(lineBytes);
-			// eclipseOut.write(lineBytes);
 
 			if (line.isEmpty() || line.contentEquals("\r\n"))
 				break;
@@ -103,7 +98,7 @@ public class AppiumToEclipseThread implements Runnable, Closeable {
 		return header;
 	}
 
-	private ByteArrayOutputStream readBody(BufferedReader br) throws ParseException, IOException{
+	private ByteArrayOutputStream readBody(BufferedReader br) throws ParseException, IOException {
 		int contentLength = this.getContentLength(sb.toString());
 		int totalBytesRead = 0;
 		int totalSubStringBytesRead = 0;
@@ -124,10 +119,7 @@ public class AppiumToEclipseThread implements Runnable, Closeable {
 				System.out.print("  <<  " + bytesToString);
 
 			sb.append(bytesToString);
-			// add new session id first time
-
 			body.write(bytesToString.getBytes(StandardCharsets.UTF_8), 0, bytesToString.substring(0, bytesRead).getBytes(StandardCharsets.UTF_8).length);
-
 			totalSubStringBytesRead += bytesToString.substring(0, bytesRead).getBytes(StandardCharsets.UTF_8).length;
 
 			if (totalSubStringBytesRead >= contentLength)
@@ -173,7 +165,9 @@ public class AppiumToEclipseThread implements Runnable, Closeable {
 				+ "access-control-allow-methods: GET,POST,PUT,OPTIONS,DELETE\n" + "access-control-allow-headers: origin, content-type, accept\n" + "vary: X-HTTP-Method-Override\n"
 				+ "content-type: application/json; charset=utf-8\n" + "content-length: #length#\n" + "connection: keep-alive" + "\n";
 
-		// String body = "{\"status\":33,\"value\":{\"message\":\"" + ex.getClass().getName() + " : " + ex.getMessage() + "\"},\"sessionId\":null}";
+		// String body = "{\"status\":33,\"value\":{\"message\":\"" +
+		// ex.getClass().getName() + " : " + ex.getMessage() +
+		// "\"},\"sessionId\":null}";
 		org.json.JSONObject _jsonBody = new JSONObject();
 		_jsonBody.put("status", 33);
 		_jsonBody.put("value", new JSONObject().put("message", "Appium Server Error due to some reason please check Hub/AppiumStdErr logs for more Information"));

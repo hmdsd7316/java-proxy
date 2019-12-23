@@ -1,4 +1,4 @@
-package com.sid.OwnProxy.socket;
+package com.sid.proxy.sockets;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -9,9 +9,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.sid.OwnProxy.enums.HttpProtocol;
-
-public class ParsedRequestHeader {
+public class RequestHeader {
 
 	public HttpProtocol Protocol;
 	public String address;
@@ -19,7 +17,7 @@ public class ParsedRequestHeader {
 
 	public Map<String, String> RequestHeaders = new HashMap<>();
 
-	private ParsedRequestHeader(String requestHeader) throws ParseException {
+	private RequestHeader(String requestHeader) throws ParseException {
 		// https://stackoverflow.com/questions/13255622/parsing-raw-http-request
 		try {
 			BufferedReader reader = new BufferedReader(new StringReader(requestHeader));
@@ -41,8 +39,8 @@ public class ParsedRequestHeader {
 
 	}
 
-	public static ParsedRequestHeader parse(String requestHeader) throws ParseException {
-		return new ParsedRequestHeader(requestHeader);
+	public static RequestHeader parse(String requestHeader) throws ParseException {
+		return new RequestHeader(requestHeader);
 	}
 
 	private void processRequestLine(String requestLine) {

@@ -1,8 +1,6 @@
-package com.sid.OwnProxy.server;
+package com.sid.proxy.interfaces;
 
-import com.sid.OwnProxy.interfaces.Request;
-
-public class ServerRequest implements Request{
+public class ServerResponse implements Response{
 
 	private String header;
 	private String body;
@@ -26,4 +24,5 @@ public class ServerRequest implements Request{
 	public void setBody(String body) {
 		this.body = body;
 	}
+	
 }
